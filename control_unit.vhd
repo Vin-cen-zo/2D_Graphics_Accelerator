@@ -81,7 +81,7 @@ architecture Behavioral of control_unit is
     );
 
     -- Micro-Program Counter (uPC)
-    signal uPC : integer range 0 to 63 := 0;    -- Counter instruksi saat ini
+    signal uPC : integer range 0 to 79 := 0;    -- Counter instruksi saat ini
     
     -- Current Microinstruction Register (uIR)
     signal uIR : std_logic_vector(15 downto 0); -- Instruksi saat ini disimpan disini
