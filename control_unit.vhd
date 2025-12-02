@@ -8,10 +8,10 @@ entity control_unit is
         instruction : in STD_LOGIC_VECTOR (63 downto 0);    -- Instruction code
         
         -- Sinyal feedback selesai instruksi dari datapath
-        clear_done, rect_done, tri_done, line_done : in STD_LOGIC;
+        clear_done, rect_done, tri_done, line_done, circ_done : in STD_LOGIC;
         
         -- Sinyal enable ke datapath
-        en_clear, en_rect, en_tri, en_line : out STD_LOGIC; -- Hapus canvas, segiempat, segitiga, garis
+        en_clear, en_rect, en_tri, en_line, en_circ : out STD_LOGIC; -- Hapus canvas, segiempat, segitiga, garis
         reg_color_we : out STD_LOGIC;   -- Untuk warna
         busy, done : out STD_LOGIC  -- Sedang ada instruction atau sedang idle
     );
@@ -21,7 +21,7 @@ architecture Behavioral of control_unit is
 
     -- Type sama seperti struct
     -- Sebuah array sebesar 64 slot dengan setiap slot berisi 16-bit Microinstruction  
-    type u_mem_type is array (0 to 63) of std_logic_vector(15 downto 0);
+    type u_mem_type is array (0 to 79) of std_logic_vector(15 downto 0);
     
     -- Format Microinstruction (16-bit):
     -- [15:14] State Type: 00=Idle/Fetch, 01=Wait for Done, 10=Finish/Print
@@ -67,10 +67,15 @@ architecture Behavioral of control_unit is
         -- State=01 (Wait Done), Busy=1, En_Line=1
         50 => "01" & "0000" & "10" & "00010" & "000",
 
-        -- ALAMAT 60: FINISH / PRINT (Opcode 0)
+        -- ALAMAT 60: DRAW CIRCLE (Opcode 0)
+        -- Menggambar lingkaran.
+        -- State=01 (Wait Done), Busy=1, En_Circ=1
+        60 => "01" & "0000" & "10" & "00000" & "100",
+
+        -- ALAMAT 70: FINISH / PRINT (Opcode 0)
         -- Selesai menggambar. Menunggu FETCH lagi.
         -- State=00 (Idle), Busy=0, Done=1
-        60 => "00" & "0000" & "01" & "00000" & "000",
+        70 => "00" & "0000" & "01" & "00000" & "000",
 
         others => (others => '0')
     );
@@ -97,6 +102,7 @@ begin
     en_tri       <= uIR(5);
     en_line      <= uIR(4);
     reg_color_we <= uIR(3);
+    en_circ      <= uIR(2);
 
     -- 3. DECODE STATE (Sequencer, Next address logic)
     process(clk)
@@ -115,6 +121,7 @@ begin
                 if uIR(6)='1' and rect_done='1'  then condition_met := true; end if;
                 if uIR(5)='1' and tri_done='1'   then condition_met := true; end if;
                 if uIR(4)='1' and line_done='1'  then condition_met := true; end if;
+                if uIR(2)='1' and circ_done='1'  then condition_met := true; end if;
 
                 case seq_type is
                     -- STATE 00: IDLE / FETCH
@@ -127,9 +134,10 @@ begin
                                     when "0011" => uPC <= 30; -- Menggambar Rectangle
                                     when "0100" => uPC <= 40; -- Menggambar Triangle
                                     when "0101" => uPC <= 50; -- Menggambar Line
-                                    when "0000" => uPC <= 60; -- Finish
-                                    when others => uPC <= 0;
-                                end case;
+                                    when "0110" => uPC <= 60; -- Menggambar Circle
+                                    when "0000" => uPC <= 70; -- Finish / Print
+                                    when others => uPC <= 0; -- Invalid Opcode, kembali ke IDLE
+                                end case;   
                             end if;
                         else
                             -- Jika uPC 60, STATE=00. Diam di tempat
