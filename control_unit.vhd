@@ -8,10 +8,10 @@ entity control_unit is
         instruction : in STD_LOGIC_VECTOR (63 downto 0);    -- Instruction code
         
         -- Sinyal feedback selesai instruksi dari datapath
-        clear_done, rect_done, tri_done, line_done, circ_done : in STD_LOGIC;
+        clear_done, rect_done, tri_done, line_done, circ_done, char_done : in STD_LOGIC;
         
         -- Sinyal enable ke datapath
-        en_clear, en_rect, en_tri, en_line, en_circ : out STD_LOGIC; -- Hapus canvas, segiempat, segitiga, garis
+        en_clear, en_rect, en_tri, en_line, en_circ, en_char : out STD_LOGIC; -- Hapus canvas, segiempat, segitiga, garis
         reg_color_we : out STD_LOGIC;   -- Untuk warna
         busy, done : out STD_LOGIC  -- Sedang ada instruction atau sedang idle
     );
@@ -21,7 +21,7 @@ architecture Behavioral of control_unit is
 
     -- Type sama seperti struct
     -- Sebuah array sebesar 64 slot dengan setiap slot berisi 16-bit Microinstruction  
-    type u_mem_type is array (0 to 79) of std_logic_vector(15 downto 0);
+    type u_mem_type is array (0 to 99) of std_logic_vector(15 downto 0);
     
     -- Format Microinstruction (16-bit):
     -- [15:14] State Type: 00=Idle/Fetch, 01=Wait for Done, 10=Finish/Print
@@ -33,7 +33,9 @@ architecture Behavioral of control_unit is
     -- [05]    Enable Triangle
     -- [04]    Enable Line
     -- [03]    Reg Color Write Enable
-    -- [02:00] Unused
+    -- [02]    Enable Circle
+    -- [01]    Enable Character
+    -- [00]    Unused (0) -- fitur tambahan kedepannya
     
     -- Object dari u_mem_type yang tidak dapat diubah (constant)
     constant u_rom : u_mem_type := (
@@ -77,11 +79,17 @@ architecture Behavioral of control_unit is
         -- State=00 (Idle), Busy=0, Done=1
         70 => "00" & "0000" & "01" & "00000" & "000",
 
+        -- Tambahan fitur
+        -- ALAMAT 80: DRAW CHAR (Opcode 7)
+        -- Menggambar karakter.
+        -- State=01 (Wait Done), Busy=1, En_Char=1
+        80 => "01" & "0000" & "10" & "00000" & "010",
+
         others => (others => '0')
     );
 
     -- Micro-Program Counter (uPC)
-    signal uPC : integer range 0 to 79 := 0;    -- Counter instruksi saat ini
+    signal uPC : integer range 0 to 99 := 0;    -- Counter instruksi saat ini
     
     -- Current Microinstruction Register (uIR)
     signal uIR : std_logic_vector(15 downto 0); -- Instruksi saat ini disimpan disini
@@ -103,6 +111,7 @@ begin
     en_line      <= uIR(4);
     reg_color_we <= uIR(3);
     en_circ      <= uIR(2);
+    en_char      <= uIR(1);
 
     -- 3. DECODE STATE (Sequencer, Next address logic)
     process(clk)
@@ -122,6 +131,7 @@ begin
                 if uIR(5)='1' and tri_done='1'   then condition_met := true; end if;
                 if uIR(4)='1' and line_done='1'  then condition_met := true; end if;
                 if uIR(2)='1' and circ_done='1'  then condition_met := true; end if;
+                if uIR(1)='1' and char_done='1'  then condition_met := true; end if;
 
                 case seq_type is
                     -- STATE 00: IDLE / FETCH
@@ -135,6 +145,7 @@ begin
                                     when "0100" => uPC <= 40; -- Menggambar Triangle
                                     when "0101" => uPC <= 50; -- Menggambar Line
                                     when "0110" => uPC <= 60; -- Menggambar Circle
+                                    when "0111" => uPC <= 80; -- Menggambar Character
                                     when "0000" => uPC <= 70; -- Finish / Print
                                     when others => uPC <= 0; -- Invalid Opcode, kembali ke IDLE
                                 end case;   
