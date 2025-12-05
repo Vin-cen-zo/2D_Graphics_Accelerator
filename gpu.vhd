@@ -18,8 +18,8 @@ architecture Behavioral of gpu is
         Port ( 
             clk, reset, start : in STD_LOGIC;
             instruction : in STD_LOGIC_VECTOR(63 downto 0); -- Instruction code
-            clear_done, rect_done, tri_done, line_done, circ_done : in STD_LOGIC; -- Selesai instruction
-            en_clear, en_rect, en_tri, en_line, en_circ, reg_color_we : out STD_LOGIC; -- Melakukan instruction
+            clear_done, rect_done, tri_done, line_done, circ_done, char_done : in STD_LOGIC; -- Selesai instruction
+            en_clear, en_rect, en_tri, en_line, en_circ, reg_color_we, en_char : out STD_LOGIC; -- Melakukan instruction
             busy, done : out STD_LOGIC  -- Sedang ada instruction atau sedang idle
             );
     end component;
@@ -28,8 +28,8 @@ architecture Behavioral of gpu is
         Port ( 
             clk, reset : in STD_LOGIC;
             instruction : in STD_LOGIC_VECTOR(63 downto 0); -- Instruction code
-            en_clear, en_rect, en_tri, en_line, en_circ, reg_color_we : in STD_LOGIC; -- Selesai instruction
-            clear_done, rect_done, tri_done, line_done, circ_done : out STD_LOGIC; -- Melakukan instruction
+            en_clear, en_rect, en_tri, en_line, en_circ, reg_color_we, en_char : in STD_LOGIC; -- Selesai instruction
+            clear_done, rect_done, tri_done, line_done, circ_done, char_done : out STD_LOGIC; -- Melakukan instruction
             vram_we : out STD_LOGIC;    -- Vram write enable
             vram_addr : out STD_LOGIC_VECTOR(16 downto 0);  -- Vram address pixel
             vram_data : out STD_LOGIC_VECTOR(23 downto 0)   -- Vram color memory
@@ -46,10 +46,10 @@ architecture Behavioral of gpu is
     end component;
 
     -- Sinyal control set warna, clear canvas, gambar segiempat, gambar segitiga, gambar garis
-    signal ctrl_reg_color_we, ctrl_en_clear, ctrl_en_rect, ctrl_en_tri, ctrl_en_line, ctrl_en_circ : std_logic;
+    signal ctrl_reg_color_we, ctrl_en_clear, ctrl_en_rect, ctrl_en_tri, ctrl_en_line, ctrl_en_circ, ctrl_en_char : std_logic;
     
     -- Sinyal done clear canvas, gambar segiempat, gambar segitiga, gambar garis
-    signal dp_clear_done, dp_rect_done, dp_tri_done, dp_line_done, dp_circ_done : std_logic;
+    signal dp_clear_done, dp_rect_done, dp_tri_done, dp_line_done, dp_circ_done, dp_char_done : std_logic;
     
     -- Sinyal penghubung antar komponen
     signal dp_vram_we, final_we : std_logic;
@@ -69,11 +69,13 @@ begin
         tri_done => dp_tri_done, 
         line_done => dp_line_done,
         circ_done => dp_circ_done,
+        char_done => dp_char_done,
         en_clear => ctrl_en_clear, 
         en_rect => ctrl_en_rect, 
         en_tri => ctrl_en_tri, 
         en_line => ctrl_en_line,
         en_circ => ctrl_en_circ,
+        en_char => ctrl_en_char,
         reg_color_we => ctrl_reg_color_we, 
         busy => busy, 
         done => done
@@ -89,12 +91,14 @@ begin
         en_tri => ctrl_en_tri, 
         en_line => ctrl_en_line,
         en_circ => ctrl_en_circ,
+        en_char => ctrl_en_char,
         reg_color_we => ctrl_reg_color_we,
         clear_done => dp_clear_done, 
         rect_done => dp_rect_done, 
         tri_done => dp_tri_done, 
         line_done => dp_line_done,
         circ_done => dp_circ_done,
+        char_done => dp_char_done,
         vram_we => dp_vram_we, 
         vram_addr => dp_vram_addr, 
         vram_data => dp_vram_data
