@@ -95,3 +95,7 @@ The GPU executes 64-bit instructions. The Opcode is located in the most signific
 
 The project includes testbenches (`tb_gpu.vhd`) to verify functionality.
 - **Dump Mode:** When `dump_mode = '1'`, the GPU stops drawing and allows the testbench to read VRAM content address-by-address. This is used to generate an output image file (e.g., `.bmp`) to visually verify the drawing commands.
+
+## Links
+- Presentation
+https://docs.google.com/presentation/d/1T9sgq7HcSU51s1MBVUYzaXnrPZ6Ey2v3BkG3ibgBUcY
